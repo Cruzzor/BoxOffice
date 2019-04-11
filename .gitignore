@@ -1,3 +1,7 @@
+# data files that are not supposed to be in a public repository
+train.csv
+test.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
