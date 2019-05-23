@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 import ast  # Interpret string as Python command
+from typing import Tuple
 
 def extract_names(keyword_list):
     if pd.isna(keyword_list):
@@ -21,7 +22,7 @@ def has_top_keyword(keyword_list, top_keywords):
     return False
 
 
-def extract_has_top_keyword(data: pd.DataFrame) -> pd.DataFrame:
+def extract_has_top_keyword(data: pd.DataFrame) -> Tuple[pd.DataFrame, list]:
     # Get pairs of keyword list + revenue for each movie
     df = data.copy()
     df['Keywords'] = df['Keywords'].map(extract_names, na_action=None)
@@ -61,4 +62,4 @@ def extract_has_top_keyword(data: pd.DataFrame) -> pd.DataFrame:
     result_df = data.copy()[['id', 'Keywords']]
     result_df['has_top_keyword'] = result_df["Keywords"].apply(has_top_keyword, args=(top_keywords,))
     
-    return result_df.drop(['Keywords'], axis=1)
+    return result_df.drop(['Keywords'], axis=1), top_keywords
