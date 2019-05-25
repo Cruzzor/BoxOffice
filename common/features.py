@@ -35,7 +35,7 @@ def extract_has_top_keyword(data: pd.DataFrame) -> Tuple[pd.DataFrame, list]:
         .to_frame('Keywords')
     )
     df = keywords_df.join(df[['revenue']]).reset_index(drop=True)
-    
+
     # Compute sum and mean revenue for each keyword + count occurences
     def f(x):
         d = {}
@@ -55,13 +55,14 @@ def extract_has_top_keyword(data: pd.DataFrame) -> Tuple[pd.DataFrame, list]:
     df = df[df.keyword_count >= 5]
     perc_thresh = 70  # chosen so that dataset is balanced
     perc = np.percentile(df.revenue_mean, perc_thresh)
-    
+
     # Generating new column
     top_keywords = list(df[df.revenue_mean >= perc].Keywords)
 
     result_df = data.copy()[['id', 'Keywords']]
     result_df['has_top_keyword'] = result_df["Keywords"].apply(has_top_keyword, args=(top_keywords,))
-    return result_df.drop(['Keywords'], axis=1)
+
+    return result_df.drop(['Keywords'], axis=1), top_keywords
 
 
 def getTimeFeatures(training_set):
