@@ -61,5 +61,61 @@ def extract_has_top_keyword(data: pd.DataFrame) -> Tuple[pd.DataFrame, list]:
 
     result_df = data.copy()[['id', 'Keywords']]
     result_df['has_top_keyword'] = result_df["Keywords"].apply(has_top_keyword, args=(top_keywords,))
+    return result_df.drop(['Keywords'], axis=1)
+
+
+def getTimeFeatures(training_set):
+    releaseDate = pd.to_datetime(training_set['release_date']) 
+    training_set["day"] = releaseDate.dt.dayofweek
+    year = releaseDate.dt.year
+    #some years are >2020 --> subtract 100
+    year[year>2020] = year[year>2020]-100
+    training_set["year"] = year
+    training_set["age"] = year.max() - year
+    return training_set[['id','day','year','age']].copy()
+
+def getNumericFeatures(training_set):
+    training_set["budgetLog"] = np.log1p(training_set['budget'])
+    training_set["PopLog"] = np.log1p(training_set['popularity'])
+    return training_set[['id','budgetLog','PopLog']].copy()
+
+def getBinaryFeatures(df):
+    df["hashomepage"] = ~(df["homepage"].isna())
+    df["isinCollection"] = ~(df["belongs_to_collection"].isna())
+    df["zeroBudget"] = (df["budget"]==0)
+    return df[['id',"hashomepage",'isinCollection',"zeroBudget"]].copy()
+
+def getStarFeature(df):
+    df.loc[df.cast.isnull(), "cast"] = ''
+    castList = df.cast.str.strip('[]')
+    listOfallActors = pd.Series(pd.Series(list(", ".join(castList.unique().tolist()).split('}, '))).str.split("'name': '").str[1].str.split("'").str[0].tolist())
+    allActors = listOfallActors.value_counts()
+    topActors = allActors[allActors>=10].index
+    df['hasStar'] = df.cast.apply(lambda row: 1 if any(act in row for act in topActors) else 0)
+    df['NumStar']= df.cast.apply(lambda row: sum(act in row for act in topActors))
+    return df[['id',"hasStar",'NumStar']].copy()
+
+#only works for genre at the moment, e.g., tranformListIntoBinaryFeatures(df, "genre", 100)
+#also works for spoken_language and production_countries now
+#also work for production_company
+def tranformListIntoBinaryFeatures(df, feature, treshhold):
+    df.list = df[feature].str.strip('[]')
+    df.list[df.list.isnull()] = ''
+    genres_list = pd.Series(list(set(", ".join(df.list.unique().tolist()).split('}, ')))).str.split("'name': '").str[1].str.split("'").str[0].tolist()
     
-    return result_df.drop(['Keywords'], axis=1), top_keywords
+    for x in range(genres_list.count("")):
+        genres_list.remove("")
+    genres_list=['missing' if x is np.nan else x for x in genres_list]
+    
+    genres_list_trimmed = genres_list.copy()
+    for genre in genres_list:
+        df[genre] = df[feature].str.contains(genre)
+        df[genre] = df[genre].fillna(False)
+        if df[genre].sum(axis = 0) < treshhold :
+            genres_list_trimmed.remove(genre)
+        #else:
+            #print(df[genre].sum(axis = 0))
+            #print(genre)
+    print(genres_list_trimmed)
+    df["numberCount"] = df[genres_list].sum(axis = 1)
+    return df[['id',"numberCount"]+genres_list_trimmed].copy()
