@@ -66,6 +66,7 @@ def extract_has_top_keyword(data: pd.DataFrame) -> Tuple[pd.DataFrame, list]:
 
 
 def getTimeFeatures(training_set):
+    training_set = training_set.copy()
     releaseDate = pd.to_datetime(training_set['release_date']) 
     training_set["day"] = releaseDate.dt.dayofweek
     year = releaseDate.dt.year
@@ -73,20 +74,23 @@ def getTimeFeatures(training_set):
     year[year>2020] = year[year>2020]-100
     training_set["year"] = year
     training_set["age"] = year.max() - year
-    return training_set[['id','day','year','age']].copy()
+    return training_set[['id','day','year','age']]
 
 def getNumericFeatures(training_set):
+    training_set = training_set.copy()
     training_set["budgetLog"] = np.log1p(training_set['budget'])
     training_set["PopLog"] = np.log1p(training_set['popularity'])
-    return training_set[['id','budgetLog','PopLog']].copy()
+    return training_set[['id','budgetLog','PopLog']]
 
 def getBinaryFeatures(df):
+    df = df.copy()
     df["hashomepage"] = ~(df["homepage"].isna())
     df["isinCollection"] = ~(df["belongs_to_collection"].isna())
     df["zeroBudget"] = (df["budget"]==0)
-    return df[['id',"hashomepage",'isinCollection',"zeroBudget"]].copy()
+    return df[['id',"hashomepage",'isinCollection',"zeroBudget"]]
 
 def getStarFeature(df):
+    df = df.copy()
     df.loc[df.cast.isnull(), "cast"] = ''
     castList = df.cast.str.strip('[]')
     listOfallActors = pd.Series(pd.Series(list(", ".join(castList.unique().tolist()).split('}, '))).str.split("'name': '").str[1].str.split("'").str[0].tolist())
@@ -94,7 +98,7 @@ def getStarFeature(df):
     topActors = allActors[allActors>=10].index
     df['hasStar'] = df.cast.apply(lambda row: 1 if any(act in row for act in topActors) else 0)
     df['NumStar']= df.cast.apply(lambda row: sum(act in row for act in topActors))
-    return df[['id',"hasStar",'NumStar']].copy()
+    return df[['id',"hasStar",'NumStar']]
 
 #only works for genre at the moment, e.g., tranformListIntoBinaryFeatures(df, "genre", 100)
 #also works for spoken_language and production_countries now
